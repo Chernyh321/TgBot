@@ -1,6 +1,7 @@
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters.command import Command
 from aiogram.types import Message
+import os
 
 from dotenv import dotenv_values
 from random import choice
@@ -25,22 +26,30 @@ ip_address = generate_random_ip_address()
 @dp.message(Command('start'))
 async def cmd_start(message: Message):
     user = message.from_user
-    first_name = user.first_name
-    last_name = user.last_name
-    username = user.username
     user_id = user.id
-    lang_code = user.language_code
-    user_config = User(first_name=first_name, last_name=last_name, 
-                username=username, user_id=user_id, 
-                lang_code=lang_code, ip=generate_random_ip_address())
+    if not User.check_if_user_exists(user_id=user_id):
+        first_name = user.first_name
+        last_name = user.last_name
+        username = user.username
+        
+        lang_code = user.language_code
+        User(first_name=first_name, last_name=last_name, 
+                    username=username, user_id=user_id, 
+                    lang_code=lang_code, ip=generate_random_ip_address())
 
     await message.answer('Дай денег')
 
 
 @dp.message(F.text == 'Добрый день')
 @dp.message(F.text == 'Здравствуйте')
-async def send_ip(message):
-    await message.answer(ip_address)
+async def send_ip(message: Message):
+    user=message.from_user
+    user_id = user.id
+    
+
+    user_config= User.create_from_file(user.id)
+    await message.answer(user_config.ip)
+    await message.answer('Всё, ты доигрался, {user.first_name}!')
     await message.answer('За тобой выехали')
 
 
@@ -54,3 +63,8 @@ async def main():
     await dp.start_polling(bot)
 
 asyncio.run(main())
+
+def check_if_user_exists(cls,user_id:int) -> bool:
+    file_name = f'(user_id).json'
+    folder = f'users/configs'
+    return file_name in os.listdir(folder)
